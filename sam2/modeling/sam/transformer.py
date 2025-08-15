@@ -176,7 +176,6 @@ class TwoWayAttentionBlock(nn.Module):
         mlp_out = self.mlp(queries)
         queries = queries + mlp_out
         queries = self.norm3(queries)
-
         # Cross attention block, image embedding attending to tokens
         q = queries + query_pe
         k = keys + key_pe

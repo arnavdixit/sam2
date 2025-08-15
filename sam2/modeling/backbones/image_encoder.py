@@ -9,6 +9,7 @@ from typing import List, Optional
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
+#from sam2.modeling.adapters.fno_adapter import FNOAdapter
 
 
 class ImageEncoder(nn.Module):
@@ -25,9 +26,32 @@ class ImageEncoder(nn.Module):
         assert (
             self.trunk.channel_list == self.neck.backbone_channel_list
         ), f"Channel dims of trunk and neck do not match. Trunk: {self.trunk.channel_list}, neck: {self.neck.backbone_channel_list}"
+        
+        #self.fno = FNOAdapter(resolution=64)
+        #self.alpha = nn.Parameter(torch.tensor(0.1))  # learnable scale
 
     def forward(self, sample: torch.Tensor):
-        # Forward through backbone
+        """ # Forward through backbone
+        trunk_feats = self.trunk(sample)
+        x0 = trunk_feats[0]  # highest level features (lowest spatial)
+        B, C, H, W = x0.shape
+
+        # Apply FNO to the highest level features
+        fno_out = self.fno(x0)
+        
+        trunk_feats[0] = trunk_feats[0] + self.alpha * fno_out
+        
+        features, pos = self.neck(trunk_feats)
+        if self.scalp > 0:
+            features, pos = features[:-self.scalp], pos[:-self.scalp]
+
+        src = features[-1]
+        return {
+            "vision_features": src,
+            "vision_pos_enc": pos,
+            "backbone_fpn": features,
+        }"""
+        
         features, pos = self.neck(self.trunk(sample))
         if self.scalp > 0:
             # Discard the lowest resolution features
