@@ -12,6 +12,7 @@ import torch.nn as nn
 import torch.nn.functional as F
 
 from sam2.modeling.sam2_utils import DropPath, get_clones, LayerNorm2d
+from sam2.modeling.adapters.fno_adapter import FNOAdapter
 
 
 class MaskDownSampler(nn.Module):
@@ -150,8 +151,9 @@ class MemoryEncoder(nn.Module):
 
         self.pix_feat_proj = nn.Conv2d(in_dim, in_dim, kernel_size=1)
         self.fuser = fuser
+        self.fno = FNOAdapter(resolution=64)
+        self.combined_proj = nn.Identity()
         self.position_encoding = position_encoding
-        self.out_proj = nn.Identity()
         if out_dim != in_dim:
             self.out_proj = nn.Conv2d(in_dim, out_dim, kernel_size=1)
 
@@ -173,7 +175,11 @@ class MemoryEncoder(nn.Module):
 
         x = self.pix_feat_proj(pix_feat)
         x = x + masks
-        x = self.fuser(x)
+        #x = self.fuser(x)
+        x_fused = self.fuser(x)
+        x_fno = self.fno(x)
+        x = x_fused + x_fno
+        
         x = self.out_proj(x)
 
         pos = self.position_encoding(x).to(x.dtype)
